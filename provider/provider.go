@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"os"
 
 	"github.com/selefra/selefra-provider-planetscale/planetscale_client"
 	"github.com/selefra/selefra-provider-sdk/provider"
@@ -29,6 +30,22 @@ func GetProvider() *provider.Provider {
 					planetscaleConfig.Providers = append(planetscaleConfig.Providers, planetscale_client.Config{})
 				}
 
+				if planetscaleConfig.Providers[0].Token == "" {
+					planetscaleConfig.Providers[0].Token = os.Getenv("PLANETSCALE_TOKEN")
+				}
+
+				if planetscaleConfig.Providers[0].Token == "" {
+					return nil, schema.NewDiagnostics().AddErrorMsg("missing token in configuration")
+				}
+
+				if planetscaleConfig.Providers[0].Organization == "" {
+					planetscaleConfig.Providers[0].Organization = os.Getenv("PLANETSCALE_ORGANIZATION")
+				}
+
+				if planetscaleConfig.Providers[0].Organization == "" {
+					return nil, schema.NewDiagnostics().AddErrorMsg("missing organization in configuration")
+				}
+
 				clients, err := planetscale_client.NewClients(planetscaleConfig)
 
 				if err != nil {
@@ -53,15 +70,11 @@ func GetProvider() *provider.Provider {
 # organization: "<YOUR_ORGANIZATION>"`
 			},
 			Validation: func(ctx context.Context, config *viper.Viper) *schema.Diagnostics {
-				var client_config planetscale_client.Configs
-				err := config.Unmarshal(&client_config.Providers)
+				var clientConfig planetscale_client.Configs
+				err := config.Unmarshal(&clientConfig.Providers)
 
 				if err != nil {
 					return schema.NewDiagnostics().AddErrorMsg("analysis config err: %s", err.Error())
-				}
-
-				if len(client_config.Providers) == 0 {
-					return schema.NewDiagnostics().AddErrorMsg("analysis config err: no configuration")
 				}
 
 				return nil
